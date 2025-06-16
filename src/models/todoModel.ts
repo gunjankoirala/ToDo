@@ -17,7 +17,7 @@ export async function createTodo(task: string) {
   const result = await db.run('INSERT INTO todos (task, completed) VALUES (?, ?)', [task, false]);
   return { id: result.lastID, task: task, completed: false };
 }
-
+ 
 export async function updateTodo(id: number, task: string, completed: boolean) {
   const db = await dbPromise;
   await db.run('UPDATE todos SET task = ?, completed = ? WHERE id = ?', [task, completed, id]);
