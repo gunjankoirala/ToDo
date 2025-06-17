@@ -1,36 +1,23 @@
 import express, { Request, Response } from 'express';
-import bodyParser from 'body-parser';
+ import cors from 'cors';
+import todoRoutes from './routes/todoRoutes';
+import { initDB } from './database';
 
 const app = express();
 const PORT = 8080;
 
-app.use(bodyParser.json());
+ app.use(cors());
+app.use(express.json());
+initDB()
+  .then((db) => {
+    
 
+    app.use('/api', todoRoutes);
 
-
-
-interface Todo {
-  id: number;
-  task: string;
-  completed: boolean;
-}
-let todos: Todo[] = [];
-let nextId = 1;
-
-
-app.get('/todos', (req: Request, res: Response) => {
-  res.json(todos);
-});
-app.post('/todos', (req: Request, res: Response) => {
-  const { task } = req.body;
-  if (!task) {
-     res.status(400).json({ error: 'Task is required' });
-  }
-  const newTodo: Todo = { id: nextId++, task, completed: false };
-  todos.push(newTodo);
-  res.status(201).json(newTodo);
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to initialize database:', err);
+  });
