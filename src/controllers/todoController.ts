@@ -1,21 +1,23 @@
 import { Request, Response } from 'express';
 import * as TodoModel from '../models/todoModel';
-
+import { ApiResponse } from './interface';
 export async function getTodos(req: Request, res: Response): Promise<any> {
   try {
-    const todos = await TodoModel.getAllTodos();
-    res.json({
-      code: 200,
+    const todos = await TodoModel.getAllTodos(); 
+    const response: ApiResponse<typeof todos> = {
+      statusCode: 200,
       message: 'Successfully fetched todos',
       data: todos,
-    });
-  } catch (err) {
-    console.error('Error fetching todos:', err);
-    return res.status(500).json({
-      code: 500,
-      message: 'Internal Server Error',
+    };
+    res.status(200).json(response);
+  } catch (error:any) {
+    console.error('Error fetching todos:', error);
+    const response: ApiResponse<null> = {
+      statusCode: 500,
+      message: error.message || 'Internal Server Error',
       data: null,
-    });
+    };
+    res.status(500).json(response);
   }
 }
 
@@ -23,27 +25,30 @@ export async function addTodo(req: Request, res: Response): Promise<any> {
   const { task } = req.body;
 
   if (!task) {
-    return res.status(400).json({
-      code: 400,
+    const response: ApiResponse<null> = {
+      statusCode: 400,
       message: 'Task is required',
       data: null,
-    });
+    };
+    return res.status(400).json(response);
   }
 
   try {
     const newTodo = await TodoModel.createTodo(task);
-    res.status(201).json({
-      code: 201,
+   const response: ApiResponse<typeof newTodo> = {
+      statusCode: 201,
       message: 'Successfully added todo',
       data: newTodo,
-    });
-  } catch (err) {
-    console.error('Error adding todo:', err);
-    return res.status(500).json({
-      code: 500,
-      message: 'Internal Server Error',
+    };
+    return res.status(201).json(response);
+  } catch (error:any) {
+    console.error('Error adding todo:', error);
+    const response: ApiResponse<null> = {
+      statusCode: 500,
+      message: error.message || 'Internal Server Error',
       data: null,
-    });
+    };
+    return res.status(500).json(response);
   }
 }
 
@@ -54,25 +59,28 @@ export async function editTodo(req: Request, res: Response): Promise<any> {
   try {
     const updatedTodo = await TodoModel.updateTodo(id, task, completed);
     if (!updatedTodo) {
-      return res.status(404).json({
-        code: 404,
+      const response: ApiResponse<null> = {
+        statusCode: 404,
         message: 'Todo not found',
         data: null,
-      });
+      };
+      return res.status(404).json(response);
     }
 
-    res.json({
-      code: 200,
+     const response: ApiResponse<typeof updatedTodo> = {
+      statusCode: 200,
       message: 'Successfully updated todo',
       data: updatedTodo,
-    });
-  } catch (err) {
-    console.error('Error updating todo:', err);
-    return res.status(500).json({
-      code: 500,
-      message: 'Internal Server Error',
+    };
+    res.status(200).json(response);
+  } catch (error:any) {
+    console.error('Error updating todo:', error);
+    const response: ApiResponse<null> = {
+      statusCode: 500,
+      message: error.message || 'Internal Server Error',
       data: null,
-    });
+    };
+    res.status(500).json(response);
   }
 }
 
@@ -80,35 +88,39 @@ export async function removeTodo(req: Request, res: Response): Promise<any> {
   const id = Number(req.params.id);
 
   if (isNaN(id)) {
-    return res.status(400).json({
-      code: 400,
+    const response: ApiResponse<null> = {
+      statusCode: 400,
       message: 'Invalid ID',
       data: null,
-    });
+    };
+    return res.status(400).json(response);
   }
 
   try {
     const deleted = await TodoModel.deleteTodo(id);
 
     if (!deleted) {
-      return res.status(404).json({
-        code: 404,
+      const response: ApiResponse<null> = {
+        statusCode: 404,
         message: 'Todo not found',
         data: null,
-      });
+      };
+      return res.status(404).json(response);
     }
 
-    return res.status(200).json({
-      code: 200,
+    const response: ApiResponse<null> = {
+      statusCode: 200,
       message: 'Todo successfully deleted',
       data: null,
-    });
-  } catch (err) {
-    console.error('Error deleting todo:', err);
-    return res.status(500).json({
-      code: 500,
-      message: 'Internal Server Error',
+    };
+    return res.status(200).json(response);
+  } catch (error:any) {
+    console.error('Error deleting todo:', error);
+    const response: ApiResponse<null> = {
+      statusCode: 500,
+      message: error.message || 'Internal Server Error',
       data: null,
-    });
+    };
+    return res.status(500).json(response);
   }
 }
