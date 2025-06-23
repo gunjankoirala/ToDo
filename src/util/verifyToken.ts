@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = 'superSecretKey123';
+import dotenv from 'dotenv';
+dotenv.config();  
+
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 export function verifyToken(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers['authorization'];

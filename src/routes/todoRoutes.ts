@@ -1,7 +1,7 @@
 import express from 'express';
 import * as todoController from '../controllers/todoController';
 import * as userController from '../controllers/userController';
-import { verifyToken } from '../verifyToken';
+import { verifyToken } from '../util/verifyToken';
 
 const router = express.Router();
 

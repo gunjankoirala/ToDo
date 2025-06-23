@@ -3,16 +3,29 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import * as userModel from '../models/userModel';
 import { ApiResponse } from './interface';
+import dotenv from 'dotenv';   
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET!;
+
+async function authenticateUser(
+  userId: string,
+  password: string,
+  hashedPassword: string,
+  jwtSecret: string
+): Promise<string | null> {
+  const isMatch = await bcrypt.compare(password, hashedPassword);
+  if (!isMatch) return null;
+
+  const token = jwt.sign({ userId }, jwtSecret, { expiresIn: '1h' }); 
+  return token;
+}
 
 
-const JWT_SECRET = 'superSecretKey123';
-
-export async function registerUser(req: Request, res: Response) :Promise<any>{
-  
-  const username:string = req.body.username;
+export async function registerUser(req: Request, res: Response): Promise<any> {
+  const username: string = req.body.username;
   const password = req.body.password;
 
-  
   if (!username || !password) {
     const response: ApiResponse<null> = {
       statusCode: 400,
@@ -23,11 +36,10 @@ export async function registerUser(req: Request, res: Response) :Promise<any>{
   }
 
   try {
-    
     const existingUser = await userModel.findUserByUsername(username);
 
     if (existingUser) {
-       const response: ApiResponse<null> = {
+      const response: ApiResponse<null> = {
         statusCode: 409,
         message: 'Username is already taken',
         data: null,
@@ -35,18 +47,16 @@ export async function registerUser(req: Request, res: Response) :Promise<any>{
       return res.status(409).json(response);
     }
 
-    
     const newUser = await userModel.createUser(username, password);
 
-    const response: ApiResponse<{ username: string} > = {
+    const response: ApiResponse<{ username: string }> = {
       statusCode: 201,
       message: 'User registered successfully',
       data: { username: newUser.username },
     };
 
     return res.status(201).json(response);
-
-  } catch (error:any) {
+  } catch (error: any) {
     console.log('Error in registerUser:', error);
     const response: ApiResponse<null> = {
       statusCode: 500,
@@ -57,7 +67,7 @@ export async function registerUser(req: Request, res: Response) :Promise<any>{
   }
 }
 
-export async function loginUser(req: Request, res: Response) :Promise<any>{
+export async function loginUser(req: Request, res: Response): Promise<any> {
   const username = req.body.username;
   const password = req.body.password;
 
@@ -71,7 +81,6 @@ export async function loginUser(req: Request, res: Response) :Promise<any>{
   }
 
   try {
-   
     const user = await userModel.findUserByUsername(username);
 
     if (!user) {
@@ -83,33 +92,28 @@ export async function loginUser(req: Request, res: Response) :Promise<any>{
       return res.status(404).json(response);
     }
 
-    
-    const isMatch = await bcrypt.compare(password, user.password);
+    const token = await authenticateUser(user.id, password, user.password, JWT_SECRET); 
 
-    if (!isMatch) {
+
+    if (!token) {
       const response: ApiResponse<null> = {
         statusCode: 401,
         message: 'Password is incorrect',
         data: null,
       };
       return res.status(401).json(response);
-      
     }
 
-    
-    const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-
-     const response: ApiResponse<{ token: string }> = {
+    const response: ApiResponse<{ token: string }> = {
       statusCode: 200,
       message: 'Login successful',
-      data: { token },
+      data: { token: token },
     };
 
     return res.status(200).json(response);
-
-  } catch (error:any) {
+  } catch (error: any) {
     console.log('Error in loginUser:', error);
-   const response: ApiResponse<null> = {
+    const response: ApiResponse<null> = {
       statusCode: 500,
       message: error.message || 'Internal server error',
       data: null,

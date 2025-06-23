@@ -11,6 +11,7 @@ export async function initDB() {
     driver: sqlite3.Database,
   });
 
+
     await db.exec(
     `CREATE TABLE IF NOT EXISTS todos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,12 +21,14 @@ export async function initDB() {
     );
 
     await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT
-    );
-  `);
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE,
+    password TEXT
+  );
+`);
+
+  
 
     return db;
 }
