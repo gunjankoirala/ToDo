@@ -1,28 +1,57 @@
 import { Request, Response } from 'express';
 import * as TodoModel from '../models/todoModel';
 import { ApiResponse } from './interface';
-export async function getTodos(req: Request, res: Response): Promise<any> {
+
+export interface AuthenticatedRequest extends Request {
+  userId?: string;
+}
+
+export async function getTodos(req: AuthenticatedRequest, res: Response): Promise<any> {
+  const userId = req.userId;
+  if (!userId) {
+    const response: ApiResponse<null> = {
+      statusCode: 401,
+      message: 'Unauthorized',
+      data: null,
+    };
+    return res.status(401).json(response);
+  }
   try {
-    const todos = await TodoModel.getAllTodos(); 
-    const response: ApiResponse<typeof todos> = {
+    const todos = await TodoModel.getAllTodos(userId);
+    const cleanedTodos = todos.map(todo => ({
+      id: todo.id,
+      task: todo.task,
+      completed: Boolean(todo.completed),
+      userId: todo.user_id,
+    }));
+    const response: ApiResponse<typeof cleanedTodos> = {
       statusCode: 200,
       message: 'Successfully fetched todos',
-      data: todos,
+      data: cleanedTodos,
     };
-    res.status(200).json(response);
-  } catch (error:any) {
-    console.error('Error fetching todos:', error);
+    return res.status(200).json(response);
+  } catch (error: any) {
     const response: ApiResponse<null> = {
       statusCode: 500,
       message: error.message || 'Internal Server Error',
       data: null,
     };
-    res.status(500).json(response);
+    return res.status(500).json(response);
   }
 }
 
-export async function addTodo(req: Request, res: Response): Promise<any> {
+export async function addTodo(req: AuthenticatedRequest, res: Response): Promise<any> {
+  const userId = req.userId;
   const { task } = req.body;
+
+  if (!userId) {
+    const response: ApiResponse<null> = {
+      statusCode: 401,
+      message: 'Unauthorized',
+      data: null,
+    };
+    return res.status(401).json(response);
+  }
 
   if (!task) {
     const response: ApiResponse<null> = {
@@ -34,15 +63,20 @@ export async function addTodo(req: Request, res: Response): Promise<any> {
   }
 
   try {
-    const newTodo = await TodoModel.createTodo(task);
-   const response: ApiResponse<typeof newTodo> = {
+    const newTodo = await TodoModel.createTodo(task, userId);
+    const cleanedTodo = {
+      id: newTodo.id,
+      task: newTodo.task,
+      completed: Boolean(newTodo.completed),
+      userId: newTodo.userId,
+    };
+    const response: ApiResponse<typeof cleanedTodo> = {
       statusCode: 201,
       message: 'Successfully added todo',
-      data: newTodo,
+      data: cleanedTodo,
     };
     return res.status(201).json(response);
-  } catch (error:any) {
-    console.error('Error adding todo:', error);
+  } catch (error: any) {
     const response: ApiResponse<null> = {
       statusCode: 500,
       message: error.message || 'Internal Server Error',
@@ -52,42 +86,21 @@ export async function addTodo(req: Request, res: Response): Promise<any> {
   }
 }
 
-export async function editTodo(req: Request, res: Response): Promise<any> {
-  const id = Number(req.params.id);
+export async function editTodo(req: AuthenticatedRequest, res: Response): Promise<any> {
+  const userId = req.userId;
   const { task, completed } = req.body;
+  const id = req.params.id;
 
-  try {
-    const updatedTodo = await TodoModel.updateTodo(id, task, completed);
-    if (!updatedTodo) {
-      const response: ApiResponse<null> = {
-        statusCode: 404,
-        message: 'Todo not found',
-        data: null,
-      };
-      return res.status(404).json(response);
-    }
-
-     const response: ApiResponse<typeof updatedTodo> = {
-      statusCode: 200,
-      message: 'Successfully updated todo',
-      data: updatedTodo,
-    };
-    res.status(200).json(response);
-  } catch (error:any) {
-    console.error('Error updating todo:', error);
+  if (!userId) {
     const response: ApiResponse<null> = {
-      statusCode: 500,
-      message: error.message || 'Internal Server Error',
+      statusCode: 401,
+      message: 'Unauthorized',
       data: null,
     };
-    res.status(500).json(response);
+    return res.status(401).json(response);
   }
-}
 
-export async function removeTodo(req: Request, res: Response): Promise<any> {
-  const id = Number(req.params.id);
-
-  if (isNaN(id)) {
+  if (!id || isNaN(Number(id))) {
     const response: ApiResponse<null> = {
       statusCode: 400,
       message: 'Invalid ID',
@@ -97,8 +110,61 @@ export async function removeTodo(req: Request, res: Response): Promise<any> {
   }
 
   try {
-    const deleted = await TodoModel.deleteTodo(id);
+    const updatedTodo = await TodoModel.updateTodo(Number(id), task, completed, userId);
+    if (!updatedTodo) {
+      const response: ApiResponse<null> = {
+        statusCode: 404,
+        message: 'Todo not found',
+        data: null,
+      };
+      return res.status(404).json(response);
+    }
+    const cleanedTodo = {
+      id: updatedTodo.id,
+      task: updatedTodo.task,
+      completed: Boolean(updatedTodo.completed),
+      userId: updatedTodo.user_id,
+    };
+    const response: ApiResponse<typeof cleanedTodo> = {
+      statusCode: 200,
+      message: 'Successfully updated todo',
+      data: cleanedTodo,
+    };
+    return res.status(200).json(response);
+  } catch (error: any) {
+    const response: ApiResponse<null> = {
+      statusCode: 500,
+      message: error.message || 'Internal Server Error',
+      data: null,
+    };
+    return res.status(500).json(response);
+  }
+}
 
+export async function removeTodo(req: AuthenticatedRequest, res: Response): Promise<any> {
+  const userId = req.userId;
+  const id = req.params.id;
+
+  if (!userId) {
+    const response: ApiResponse<null> = {
+      statusCode: 401,
+      message: 'Unauthorized',
+      data: null,
+    };
+    return res.status(401).json(response);
+  }
+
+  if (!id || isNaN(Number(id))) {
+    const response: ApiResponse<null> = {
+      statusCode: 400,
+      message: 'Invalid ID',
+      data: null,
+    };
+    return res.status(400).json(response);
+  }
+
+  try {
+    const deleted = await TodoModel.deleteTodo(Number(id), userId);
     if (!deleted) {
       const response: ApiResponse<null> = {
         statusCode: 404,
@@ -107,15 +173,13 @@ export async function removeTodo(req: Request, res: Response): Promise<any> {
       };
       return res.status(404).json(response);
     }
-
     const response: ApiResponse<null> = {
       statusCode: 200,
       message: 'Todo successfully deleted',
       data: null,
     };
     return res.status(200).json(response);
-  } catch (error:any) {
-    console.error('Error deleting todo:', error);
+  } catch (error: any) {
     const response: ApiResponse<null> = {
       statusCode: 500,
       message: error.message || 'Internal Server Error',

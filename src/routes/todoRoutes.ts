@@ -5,7 +5,7 @@ import { verifyToken } from '../util/verifyToken';
 
 const router = express.Router();
 
-router.get('/todos', todoController.getTodos);
+// router.get('/todos', todoController.getTodos);
 // router.post('/todos', todoController.addTodo);
 // router.put('/todos/:id', todoController.editTodo);
 // router.delete('/todos/:id', todoController.removeTodo);
@@ -13,6 +13,7 @@ router.get('/todos', todoController.getTodos);
 router.post('/register', userController.registerUser);
 router.post('/login', userController.loginUser);
 
+router.get('/todos', verifyToken,todoController.getTodos);
 router.post('/todos', verifyToken, todoController.addTodo);
 router.put('/todos/:id', verifyToken, todoController.editTodo);
 router.delete('/todos/:id', verifyToken, todoController.removeTodo);

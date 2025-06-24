@@ -10,24 +10,26 @@ export async function initDB() {
     filename: './todos.db',
     driver: sqlite3.Database,
   });
-
-
-    await db.exec(
-    `CREATE TABLE IF NOT EXISTS todos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      task TEXT,
-      completed BOOLEAN 
-    )`
-    );
+// await db.exec('DROP TABLE IF EXISTS todos;');
+//   await db.exec('DROP TABLE IF EXISTS users;');
 
     await db.exec(`
   CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY,            
     username TEXT UNIQUE,
     password TEXT
   );
 `);
 
+await db.exec(`
+  CREATE TABLE IF NOT EXISTS todos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task TEXT,
+    completed BOOLEAN,
+    user_id TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+`);
   
 
     return db;
