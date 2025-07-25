@@ -1,41 +1,45 @@
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
-
-const dbPromise = open({
-  filename: './todos.db',
-  driver: sqlite3.Database,
-});
+import { db, schema } from '../database';
+import { eq } from 'drizzle-orm';
 
 export async function getAllTodos(userId: string) {
-  const db = await dbPromise;
-  const todos = await db.all('SELECT * FROM todos WHERE user_id = ?', [userId]);
+  const todos = await db.select().from(schema.todos).where(eq(schema.todos.userId, userId));
   return todos;
 }
 
 export async function createTodo(task: string, userId: string) {
-  const db = await dbPromise;
-  const result = await db.run(
-    'INSERT INTO todos (task, completed, user_id) VALUES (?, ?, ?)',
-    [task, false, userId]
-  );
-  return { id: result.lastID, task, completed: false, userId };
+  await db.insert(schema.todos).values({
+    task,
+    completed: false,
+    userId,
+  });
+
+  const inserted = await db
+    .select()
+    .from(schema.todos)
+    .where(eq(schema.todos.userId, userId))
+    .orderBy(schema.todos.id)
+    .limit(1);
+
+  return inserted[0];
 }
 
 export async function updateTodo(id: number, task: string, completed: boolean, userId: string) {
-  const db = await dbPromise;
-  const result = await db.run(
-    'UPDATE todos SET task = ?, completed = ? WHERE id = ? AND user_id = ?',
-    [task, completed, id, userId]
-  );
+  const result = await db
+    .update(schema.todos)
+    .set({ task, completed })
+    .where(eq(schema.todos.id, id));
 
-  if (result.changes === 0) return null;
+  
+  const updated = await db.select().from(schema.todos).where(eq(schema.todos.id, id));
 
-  const updated = await db.get('SELECT * FROM todos WHERE id = ? AND user_id = ?', [id, userId]);
-  return updated;
+  if (updated.length === 0) return null;
+  return updated[0];
 }
 
 export async function deleteTodo(id: number, userId: string): Promise<boolean> {
-  const db = await dbPromise;
-  const result = await db.run('DELETE FROM todos WHERE id = ? AND user_id = ?', [id, userId]);
-  return typeof result.changes === 'number' && result.changes > 0;
+  await db.delete(schema.todos).where(eq(schema.todos.id, id));
+
+
+  const check = await db.select().from(schema.todos).where(eq(schema.todos.id, id));
+  return check.length === 0;
 }
