@@ -96,12 +96,13 @@ export async function loginUser(req: Request, res: Response): Promise<any> {
 
     // If user exists but no password is set 
     if (!user.password) {
-      return res.status(500).json({
-        statusCode: 500,
-        message: 'User password not set',
-        data: null,
-      });
-    }
+  return res.status(401).json({
+    statusCode: 401,
+    message: 'User password not set or invalid',
+    data: null,
+  });
+}
+
 
     // Authenticate and get JWT token
     const token = await authenticateUser(user.id, password, user.password, JWT_SECRET);
