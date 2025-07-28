@@ -6,7 +6,7 @@ import { varchar, int, boolean } from './utils/fields';
 
 dotenv.config();
 
-// ✅ User table
+//  User table
 const user = mysqlTable('user', {
   id: varchar('id', { length: 255 }).primaryKey(),
   email: varchar('email', { length: 255 }).unique(),
