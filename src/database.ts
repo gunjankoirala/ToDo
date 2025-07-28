@@ -1,27 +1,28 @@
-
 import { drizzle, MySql2Database } from 'drizzle-orm/mysql2';
 import mysql from 'mysql2/promise';
-import { mysqlTable, varchar, int, boolean } from 'drizzle-orm/mysql-core';
+import { mysqlTable } from 'drizzle-orm/mysql-core';
 import dotenv from 'dotenv';
+import { varchar, int, boolean } from './utils/fields';
 
 dotenv.config();
 
-
-const users = mysqlTable('users', {
+// ✅ User table
+const user = mysqlTable('user', {
   id: varchar('id', { length: 255 }).primaryKey(),
-  username: varchar('username', { length: 100 }).unique(),
+  email: varchar('email', { length: 255 }).unique(),
   password: varchar('password', { length: 255 }),
 });
 
-const todos = mysqlTable('todos', {
+//  Todo table 
+const todo = mysqlTable('todo', {
   id: int('id').primaryKey().autoincrement(),
-  task: varchar('task', { length: 255 }),
-  completed: boolean('completed').default(false),
-  userId: varchar('user_id', { length: 255 }),
+  task: varchar('task', { length: 255 }).notNull(),
+  completed: boolean('completed').default(false).notNull(),
+  userId: varchar('user_id', { length: 255 }).notNull(), 
 });
 
-const schema = { users, todos };
-
+// Schema and DB
+const schema = { user, todo };
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST!,
@@ -30,14 +31,9 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME!,
 });
 
-
 export const db: MySql2Database<typeof schema> = drizzle(pool, {
   schema,
-  mode: 'default', 
+  mode: 'default',
 });
 
-
-export { schema, users, todos };
-
-
-
+export { schema, user, todo };
