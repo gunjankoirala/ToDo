@@ -1,5 +1,9 @@
 import { db, schema } from '../database';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
+import { and } from 'drizzle-orm';
+
+
+
 
 // Fetch all todos that belong to a specific user
 export async function getAllTodos(userId: string) {
@@ -9,43 +13,52 @@ export async function getAllTodos(userId: string) {
 
 // Create a new todo for the user
 export async function createTodo(task: string, userId: string) {
+  // Insert the todo
   await db.insert(schema.todo).values({
     task,
     completed: false,
     userId,
   });
 
-  // Retrieve the most recently inserted todo
-  const inserted = await db
+  // Fetch the most recent inserted todo for this user
+  const [inserted] = await db
     .select()
     .from(schema.todo)
     .where(eq(schema.todo.userId, userId))
-    .orderBy(schema.todo.id)
+    .orderBy(desc(schema.todo.id))
     .limit(1);
 
-  return inserted[0];
+  if (!inserted) {
+    throw new Error('Inserted todo not found');
+  }
+
+  return inserted;
 }
 
-// Update an existing todo by ID for the given user
+
+// Update an existing todo by ID and userId
 export async function updateTodo(id: number, task: string, completed: boolean, userId: string) {
   const result = await db
     .update(schema.todo)
     .set({ task, completed })
-    .where(eq(schema.todo.id, id));
+    .where(and(eq(schema.todo.id, id), eq(schema.todo.userId, userId)));
 
-  // Retrieve the updated todo
-  const updated = await db.select().from(schema.todo).where(eq(schema.todo.id, id));
+  // If no rows updated, return null
+  if ((result as any).affectedRows === 0) return null;
 
-  // If no todo was found, return null
-  if (updated.length === 0) return null;
-  return updated[0];
+  const [updated] = await db
+    .select()
+    .from(schema.todo)
+    .where(and(eq(schema.todo.id, id), eq(schema.todo.userId, userId)));
+
+  return updated;
 }
 
-// Delete a todo by ID and return true if deletion was successful
+// Delete a todo by ID and userId; return true if deleted
 export async function deleteTodo(id: number, userId: string): Promise<boolean> {
-  await db.delete(schema.todo).where(eq(schema.todo.id, id));
+  const result = await db
+    .delete(schema.todo)
+    .where(and(eq(schema.todo.id, id), eq(schema.todo.userId, userId)));
 
-  // Check if the todo still exists
-  const check = await db.select().from(schema.todo).where(eq(schema.todo.id, id));
-  return check.length === 0;
+  return (result as any).affectedRows > 0;
 }

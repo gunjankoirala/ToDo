@@ -1,24 +1,26 @@
 import { drizzle, MySql2Database } from 'drizzle-orm/mysql2';
 import mysql from 'mysql2/promise';
-import { mysqlTable } from 'drizzle-orm/mysql-core';
 import dotenv from 'dotenv';
-import { varchar, int, boolean } from './utils/fields';
+import { mysqlTableCreator, varchar, int, boolean } from 'drizzle-orm/mysql-core';
 
 dotenv.config();
 
+//  FIXED: Return just the table name as a string
+const mySqlTable = mysqlTableCreator((tableName) => tableName);
+
 //  User table
-const user = mysqlTable('user', {
-  id: varchar('id', { length: 255 }).primaryKey(),
-  email: varchar('email', { length: 255 }).unique(),
-  password: varchar('password', { length: 255 }),
+const user = mySqlTable('user', {
+  id: varchar({ length: 255 }).primaryKey(),
+  email: varchar({ length: 255 }).unique(),
+  password: varchar({ length: 255 }),
 });
 
-//  Todo table 
-const todo = mysqlTable('todo', {
-  id: int('id').primaryKey().autoincrement(),
-  task: varchar('task', { length: 255 }).notNull(),
-  completed: boolean('completed').default(false).notNull(),
-  userId: varchar('user_id', { length: 255 }).notNull(), 
+//  Todo table
+const todo = mySqlTable('todo', {
+  id: int().primaryKey().autoincrement(),
+  task: varchar({ length: 255 }).notNull(),
+  completed: boolean().default(false).notNull(),
+  userId: varchar({ length: 255 }).notNull(),
 });
 
 // Schema and DB

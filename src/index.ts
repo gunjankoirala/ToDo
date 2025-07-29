@@ -4,7 +4,7 @@ import todoRoutes from './routes/todoRoutes';
 import { db } from './database';
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT ;
 
 
 app.use(cors());
