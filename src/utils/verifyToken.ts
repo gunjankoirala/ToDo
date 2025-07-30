@@ -39,7 +39,7 @@ export function verifyToken(req: AuthenticatedRequest, res: Response, next: Next
     return;
   }
 
-  const token = parts[1]; 
+  const token = parts[1];
 
   try {
     // Verify and decode the token using the secret key
@@ -57,7 +57,7 @@ export function verifyToken(req: AuthenticatedRequest, res: Response, next: Next
 
    
     req.userId = decoded.userId;
-    next(); 
+    next();
   } catch (error) {
     // If token is invalid or expired
     res.status(403).json({

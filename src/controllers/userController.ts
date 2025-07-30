@@ -7,7 +7,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Load the JWT secret from environment variables
-const JWT_SECRET = process.env.JWT_SECRET!;
+const jwtSecret = process.env.JWT_SECRET;
+const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1h';
+
+if (!jwtSecret) {
+  throw new Error("JWT_SECRET is missing in .env file");
+}
 
 //  function to verify password and generate JWT token
 async function authenticateUser(
@@ -40,7 +45,6 @@ export async function registerUser(req: Request, res: Response): Promise<any> {
   try {
     // Check if the email already exists in the database 
     const existingUser = await userModel.findUserByEmail(email);
-
     if (existingUser) {
       return res.status(409).json({
         statusCode: 409,
@@ -57,11 +61,12 @@ export async function registerUser(req: Request, res: Response): Promise<any> {
       message: 'User registered successfully',
       data: { email: newUser.email },
     });
+
   } catch (error: any) {
     console.error('Error in registerUser:', error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: error.message || 'Internal server error',
+    return res.status(400).json({
+      statusCode: 400,
+      message: error.message || 'Failed to register user',
       data: null,
     });
   }
@@ -96,16 +101,19 @@ export async function loginUser(req: Request, res: Response): Promise<any> {
 
     // If user exists but no password is set 
     if (!user.password) {
-  return res.status(401).json({
-    statusCode: 401,
-    message: 'User password not set or invalid',
-    data: null,
-  });
-}
-
+      return res.status(401).json({
+        statusCode: 401,
+        message: 'User password not set or invalid',
+        data: null,
+      });
+    }
 
     // Authenticate and get JWT token
-    const token = await authenticateUser(user.id, password, user.password, JWT_SECRET);
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET is not defined");
+    }
+
+    const token = await authenticateUser(user.id, password, user.password, jwtSecret);
 
     // If wrong password is provided
     if (!token) {
@@ -122,11 +130,12 @@ export async function loginUser(req: Request, res: Response): Promise<any> {
       message: 'Login successful',
       data: { token },
     });
+
   } catch (error: any) {
     console.error('Error in loginUser:', error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: error.message || 'Internal server error',
+    return res.status(400).json({
+      statusCode: 400,
+      message: error.message || 'Failed to login user',
       data: null,
     });
   }

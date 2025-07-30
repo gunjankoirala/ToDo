@@ -2,15 +2,11 @@ import { db, schema } from '../database';
 import { eq, desc } from 'drizzle-orm';
 import { and } from 'drizzle-orm';
 
-
-
-
 // Fetch all todos that belong to a specific user
 export async function getAllTodos(userId: string) {
   const todos = await db.select().from(schema.todo).where(eq(schema.todo.userId, userId));
   return todos;
 }
-
 // Create a new todo for the user
 export async function createTodo(task: string, userId: string) {
   // Insert the todo
@@ -19,7 +15,6 @@ export async function createTodo(task: string, userId: string) {
     completed: false,
     userId,
   });
-
   // Fetch the most recent inserted todo for this user
   const [inserted] = await db
     .select()
@@ -34,7 +29,6 @@ export async function createTodo(task: string, userId: string) {
 
   return inserted;
 }
-
 
 // Update an existing todo by ID and userId
 export async function updateTodo(id: number, task: string, completed: boolean, userId: string) {

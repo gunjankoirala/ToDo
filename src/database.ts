@@ -8,6 +8,7 @@ dotenv.config();
 //  FIXED: Return just the table name as a string
 const mySqlTable = mysqlTableCreator((tableName) => tableName);
 
+
 //  User table
 const user = mySqlTable('user', {
   id: varchar({ length: 255 }).primaryKey(),
