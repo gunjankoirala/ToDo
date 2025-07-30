@@ -9,19 +9,21 @@ export async function getAllTodos(userId: string) {
 }
 // Create a new todo for the user
 export async function createTodo(task: string, userId: string) {
-  // Insert the todo
-  await db.insert(schema.todo).values({
+  const result = await db.insert(schema.todo).values({
     task,
     completed: false,
     userId,
-  });
-  // Fetch the most recent inserted todo for this user
+  }).$returningId();
+
+  if (!result.length || !result[0].id) {
+    throw new Error('Failed to insert todo');
+  }
+
+  // fetch todo using ID
   const [inserted] = await db
     .select()
     .from(schema.todo)
-    .where(eq(schema.todo.userId, userId))
-    .orderBy(desc(schema.todo.id))
-    .limit(1);
+    .where(eq(schema.todo.id, result[0].id));
 
   if (!inserted) {
     throw new Error('Inserted todo not found');
