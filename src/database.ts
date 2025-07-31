@@ -1,36 +1,42 @@
-import  sqlite3  from 'sqlite3';
-import {open} from 'sqlite';
-import path from 'path'; 
+import { drizzle, MySql2Database } from 'drizzle-orm/mysql2';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+import { mysqlTableCreator, varchar, int, boolean } from 'drizzle-orm/mysql-core';
+
+dotenv.config();
+
+//  FIXED: Return just the table name as a string
+const mySqlTable = mysqlTableCreator((tableName) => tableName);
 
 
-export async function initDB() {
-   const dbPath = path.resolve('./todos.db'); 
-  console.log('Using DB file at:', dbPath);
-  const db = await open({
-    filename: './todos.db',
-    driver: sqlite3.Database,
-  });
-// await db.exec('DROP TABLE IF EXISTS todos;');
-//   await db.exec('DROP TABLE IF EXISTS users;');
+//  User table
+const user = mySqlTable('user', {
+  id: varchar({ length: 255 }).primaryKey(),
+  email: varchar({ length: 255 }).unique(),
+  password: varchar({ length: 255 }),
+});
 
-    await db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,            
-    username TEXT UNIQUE,
-    password TEXT
-  );
-`);
+//  Todo table
+const todo = mySqlTable('todo', {
+  id: int().primaryKey().autoincrement(),
+  task: varchar({ length: 255 }).notNull(),
+  completed: boolean().default(false).notNull(),
+  userId: varchar({ length: 255 }).notNull(),
+});
 
-await db.exec(`
-  CREATE TABLE IF NOT EXISTS todos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task TEXT,
-    completed BOOLEAN,
-    user_id TEXT,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-`);
-  
+// Schema and DB
+const schema = { user, todo };
 
-    return db;
-}
+const pool = mysql.createPool({
+  host: process.env.DB_HOST!,
+  user: process.env.DB_USER!,
+  password: process.env.DB_PASSWORD!,
+  database: process.env.DB_NAME!,
+});
+
+export const db: MySql2Database<typeof schema> = drizzle(pool, {
+  schema,
+  mode: 'default',
+});
+
+export { schema, user, todo };
