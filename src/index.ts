@@ -1,19 +1,15 @@
-import express from 'express';
-import cors from 'cors';
-import todoRoutes from './routes/todoRoutes';
-import { db } from './database';
+import { ApolloServer } from '@apollo/server';
+import { startStandaloneServer } from '@apollo/server/standalone';
+import { typeDefs, resolvers } from './schema';
 
-const app = express();
-const PORT = process.env.PORT ;
+async function startServer() {
+  const server = new ApolloServer({ typeDefs, resolvers });
 
+  const { url } = await startStandaloneServer(server, {
+    listen: { port: 4000 },
+  });
 
-app.use(cors());
-app.use(express.json());
+  console.log(`🚀 Server ready at ${url}`);
+}
 
-
-app.use('/api', todoRoutes);
-
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+startServer();
