@@ -8,11 +8,6 @@ export const typeDefs = gql`
     userId: ID!
   }
 
-  type AuthPayload {
-    token: String!
-    userId: ID!
-  }
-
   type Query {
     todos: [Todo!]!
   }
@@ -22,7 +17,16 @@ export const typeDefs = gql`
     updateTodo(id: Int!, task: String, completed: Boolean): Todo!
     deleteTodo(id: Int!): Boolean!
 
-    register(email: String!, password: String!): AuthPayload!
-    login(email: String!, password: String!): AuthPayload!
+    register(email: String!, password: String!): RegisterResponse!
+    login(email: String!, password: String!): LoginResponse!
+  }
+
+  type RegisterResponse {
+    message: String!
+  }
+
+  type LoginResponse {
+    message: String!
+    token: String!
   }
 `;

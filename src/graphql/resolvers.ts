@@ -17,33 +17,67 @@ if (!JWT_SECRET) {
 
 export const resolvers = {
   Query: {
-    todos: async (_parent: any,_args: any,context: { userId: string | null }): Promise<Todo[]> => {
-      const userId = context.userId;
-      if (!userId) throw new Error('Unauthorized');
-      return await db.select().from(todo).where(eq(todo.userId, userId));
+    todos: async (_parent: any, _args: any, context: { userId: string | null }): Promise<Todo[]> => {
+      if (!context.userId) throw new Error('Unauthorized');
+      return await db.select().from(todo).where(eq(todo.userId, context.userId));
     },
   },
 
   Mutation: {
-    addTodo: async (_parent: any,args: { task: string },context: { userId: string | null } ): Promise<Todo> => {
-      const userId = context.userId;
-      if (!userId) throw new Error('Unauthorized');
+    register: async (_parent: any, args: { email: string; password: string }): Promise<{ message: string }> => {
+      const { email, password } = args;
 
-      const [{ id: insertedId }] = await db
+      const [existing] = await db.select().from(user).where(eq(user.email, email));
+      if (existing) throw new Error('User already exists');
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUserId = crypto.randomUUID();
+
+      await db.insert(user).values({
+        id: newUserId,
+        email,
+        password: hashedPassword,
+      });
+
+      return { message: 'User registered sucessfully' };
+    },
+
+    login: async (_parent: any, args: { email: string; password: string }): Promise<{ message: string; token: string }> => {
+      const { email, password } = args;
+
+      const [foundUser] = await db.select().from(user).where(eq(user.email, email));
+      if (!foundUser) throw new Error('User not found');
+      if (!foundUser.password) throw new Error('User password is missing');
+
+      const isValid = await bcrypt.compare(password, foundUser.password);
+      if (!isValid) throw new Error('Invalid credentials');
+
+      const token = jwt.sign({ userId: foundUser.id }, JWT_SECRET, {
+        expiresIn: JWT_EXPIRES_IN,
+      });
+
+      return {
+        message: 'Login successful',
+        token,
+      };
+    },
+    addTodo: async (_parent: any, args: { task: string }, context: { userId: string | null }): Promise<Todo> => {
+      if (!context.userId) throw new Error('Unauthorized');
+
+      const [{ id }] = await db
         .insert(todo)
-        .values({ task: args.task, userId, completed: false })
+        .values({ task: args.task, userId: context.userId, completed: false })
         .$returningId();
 
-      const [newTodo] = await db.select().from(todo).where(eq(todo.id, insertedId));
+      const [newTodo] = await db.select().from(todo).where(eq(todo.id, id));
       return newTodo;
     },
 
-    updateTodo: async (_parent: any,args: { id: number; task?: string; completed?: boolean },context: { userId: string | null }): Promise<Todo> => {
-      const userId = context.userId;
-      if (!userId) throw new Error('Unauthorized');
+    updateTodo: async (_parent: any, args: { id: number; task?: string; completed?: boolean }, context: { userId: string | null }): Promise<Todo> => {
+      if (!context.userId) throw new Error('Unauthorized');
 
       const [existing] = await db.select().from(todo).where(eq(todo.id, args.id));
-      if (!existing || existing.userId !== userId) throw new Error('Forbidden');
+      if (!existing || existing.userId !== context.userId) throw new Error('Forbidden');
 
       const updates: Partial<Todo> = {};
       if (args.task !== undefined) updates.task = args.task;
@@ -54,53 +88,14 @@ export const resolvers = {
       return updatedTodo;
     },
 
-    deleteTodo: async (_parent: any,args: { id: number },context: { userId: string | null }): Promise<boolean> => {
-      const userId = context.userId;
-      if (!userId) throw new Error('Unauthorized');
+    deleteTodo: async (_parent: any, args: { id: number }, context: { userId: string | null }): Promise<boolean> => {
+      if (!context.userId) throw new Error('Unauthorized');
 
       const [existing] = await db.select().from(todo).where(eq(todo.id, args.id));
-      if (!existing || existing.userId !== userId) return false;
+      if (!existing || existing.userId !== context.userId) return false;
 
       await db.delete(todo).where(eq(todo.id, args.id));
       return true;
-    },
-
-    register: async (_parent: any,args: { email: string; password: string }): Promise<{ userId: string }> => {
-      const { email, password } = args;
-
-      const [existing] = await db.select().from(user).where(eq(user.email, email));
-      if (existing) throw new Error('User already exists');
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const newUserId = crypto.randomUUID();
-
-      await db.insert(user).values({
-        id: newUserId,
-        email,
-        password: hashedPassword,
-      });
-
-    //   const token = jwt.sign({ userId: newUserId }, JWT_SECRET, {
-    //     expiresIn: JWT_EXPIRES_IN,
-    //   });
-
-      return {userId: newUserId };
-    },
-
-    login: async (_parent: any,args: { email: string; password: string }): Promise<{ token: string; userId: string }> => {
-      const { email, password } = args;
-
-      const [foundUser] = await db.select().from(user).where(eq(user.email, email));
-      if (!foundUser) throw new Error('User not found');
-
-      if (foundUser.password === null) throw new Error('User password is missing');
-      const isValid = await bcrypt.compare(password, foundUser.password);
-
-      if (!isValid) throw new Error('Invalid credentials');
-
-      const token = jwt.sign({ userId: foundUser.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-      return { token, userId: foundUser.id };
     },
   },
 };
