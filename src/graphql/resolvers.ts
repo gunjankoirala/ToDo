@@ -47,7 +47,6 @@ export const resolvers = {
 
       const [foundUser] = await db.select().from(user).where(eq(user.email, email));
       if (!foundUser) throw new Error('User not found');
-      if (!foundUser.password) throw new Error('User password is missing');
 
       const isValid = await bcrypt.compare(password, foundUser.password);
       if (!isValid) throw new Error('Invalid credentials');
