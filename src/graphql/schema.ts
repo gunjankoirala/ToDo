@@ -8,8 +8,14 @@ export const typeDefs = gql`
     userId: ID!
   }
 
+  type User {
+    id: ID!
+    email: String!
+  }
+
   type Query {
     todos: [Todo!]!
+    me: User
   }
 
   type Mutation {
@@ -30,3 +36,4 @@ export const typeDefs = gql`
     token: String!
   }
 `;
+

@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { Todo } from './types';
 import { getAllTodos, createTodo, updateTodo, deleteTodo } from '../service/todoService';
-import { createUser, findUserByEmail } from '../service/userService';
+import { createUser, findUserByEmail, findUserById } from '../service/userService';
 
 dotenv.config();
 
@@ -16,6 +16,11 @@ export const resolvers = {
       if (!context.userId) throw new Error('Unauthorized');
       const todos = await getAllTodos(context.userId);
       return todos;
+    },
+     me: async (_parent: any, _args: any, context: { userId: string | null }) => {
+      if (!context.userId) throw new Error('Unauthorized');
+      const user = await findUserById(context.userId);
+      return user;
     },
   },
 

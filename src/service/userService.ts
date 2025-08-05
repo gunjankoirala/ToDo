@@ -23,3 +23,8 @@ export async function findUserByEmail(email: string) {
   const result = await db.select().from(schema.user).where(eq(schema.user.email, email));
   return result[0]; 
 }
+//find user by their Id
+export async function findUserById(id: string) {
+  const [user] = await db.select().from(schema.user).where(eq(schema.user.id, id));
+  return user || null;
+}
