@@ -24,11 +24,16 @@ export async function findUserByEmail(email: string) {
   return result[0]; 
 }
 //find user by their Id
-export async function findUserById(id: string) {
+export async function findUserById(id: string): Promise<{ id: string; email: string } | null> {
   const [user] = await db
     .select({ id: schema.user.id, email: schema.user.email })
     .from(schema.user)
     .where(eq(schema.user.id, id));
 
-  return user || null;
+  if (!user || user.email === null) return null;
+
+  return {
+    id: user.id,
+    email: user.email,
+  };
 }
