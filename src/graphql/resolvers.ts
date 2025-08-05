@@ -57,21 +57,20 @@ export const resolvers = {
       return newTodo;
     },
 
-    updateTodo: async (_parent: any, args: { id: number; task?: string; completed?: boolean }, context: { userId: string | null }): Promise<Todo> => {
+    updateTodo: async (_parent: any,args: { id: number; task?: string; completed?: boolean },context: { userId: string | null }): Promise<Todo> => {
       if (!context.userId) throw new Error('Unauthorized');
 
-      const updatedTodo = await updateTodo(args.id, args.task ?? '', args.completed ?? false, context.userId);
-
+      const updatedTodo = await updateTodo(args.id,args.task,args.completed,context.userId);
       if (!updatedTodo) throw new Error('Forbidden');
-
       return updatedTodo;
-    },
+},
 
-    deleteTodo: async (_parent: any, args: { id: number }, context: { userId: string | null }): Promise<boolean> => {
-      if (!context.userId) throw new Error('Unauthorized');
+  deleteTodo: async ( _parent: any,args: { id: number },context: { userId: string | null }): Promise<boolean> => {
+    if (!context.userId) throw new Error('Unauthorized');
 
-      const deleted = await deleteTodo(args.id, context.userId);
-      return deleted;
-    },
+    const deleted = await deleteTodo(args.id, context.userId);
+    return deleted;
+  },
+
   },
 };
