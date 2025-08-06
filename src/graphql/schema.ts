@@ -23,11 +23,11 @@ export const typeDefs = gql`
     updateTodo(id: Int!, task: String, completed: Boolean): Todo!
     deleteTodo(id: Int!): Boolean!
 
-    register(email: String!, password: String!): RegisterResponse!
+    SignUp(email: String!, password: String!): SignUpResponse!
     login(email: String!, password: String!): LoginResponse!
   }
 
-  type RegisterResponse {
+  type SignUpResponse {
     message: String!
   }
 

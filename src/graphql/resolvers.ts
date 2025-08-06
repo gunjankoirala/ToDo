@@ -1,14 +1,11 @@
 import dotenv from 'dotenv';
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { Todo } from './types';
 import { getAllTodos, createTodo, updateTodo, deleteTodo } from '../service/todoService';
 import { createUser, findUserByEmail, findUserById } from '../service/userService';
+import { generateToken } from '../utils/jwt';
 
 dotenv.config();
-
-const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
 
 export const resolvers = {
   Query: {
@@ -17,7 +14,8 @@ export const resolvers = {
       const todos = await getAllTodos(context.userId);
       return todos;
     },
-     me: async (_parent: any, _args: any, context: { userId: string | null }) => {
+
+    me: async (_parent: any, _args: any, context: { userId: string | null }) => {
       if (!context.userId) throw new Error('Unauthorized');
       const user = await findUserById(context.userId);
       return user;
@@ -25,7 +23,7 @@ export const resolvers = {
   },
 
   Mutation: {
-    register: async (_parent: any, args: { email: string; password: string }): Promise<{ message: string }> => {
+    SignUp: async (_parent: any, args: { email: string; password: string }): Promise<{ message: string }> => {
       const { email, password } = args;
 
       const existing = await findUserByEmail(email);
@@ -33,21 +31,19 @@ export const resolvers = {
 
       await createUser(email, password);
 
-      return { message: 'User registered sucessfully' };
+      return { message: 'User registered successfully' };
     },
 
     login: async (_parent: any, args: { email: string; password: string }): Promise<{ message: string; token: string }> => {
       const { email, password } = args;
 
-      const foundUser = await findUserByEmail(email);
-      if (!foundUser) throw new Error('User not found');
+      const user = await findUserByEmail(email);
+      if (!user) throw new Error('User not found');
 
-      const isValid = await bcrypt.compare(password, foundUser.password);
+      const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) throw new Error('Invalid credentials');
 
-      const token = jwt.sign({ userId: foundUser.id }, JWT_SECRET, {
-        expiresIn: JWT_EXPIRES_IN,
-      });
+      const token = generateToken(user.id);
 
       return {
         message: 'Login successful',
@@ -65,17 +61,16 @@ export const resolvers = {
     updateTodo: async (_parent: any,args: { id: number; task?: string; completed?: boolean },context: { userId: string | null }): Promise<Todo> => {
       if (!context.userId) throw new Error('Unauthorized');
 
-      const updatedTodo = await updateTodo(args.id,args.task,args.completed,context.userId);
+      const updatedTodo = await updateTodo(args.id, args.task, args.completed, context.userId);
       if (!updatedTodo) throw new Error('Forbidden');
       return updatedTodo;
-},
+    },
 
-  deleteTodo: async ( _parent: any,args: { id: number },context: { userId: string | null }): Promise<boolean> => {
-    if (!context.userId) throw new Error('Unauthorized');
+    deleteTodo: async (_parent: any,args: { id: number },context: { userId: string | null }): Promise<boolean> => {
+      if (!context.userId) throw new Error('Unauthorized');
 
-    const deleted = await deleteTodo(args.id, context.userId);
-    return deleted;
-  },
-
+      const deleted = await deleteTodo(args.id, context.userId);
+      return deleted;
+    },
   },
 };
