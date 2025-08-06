@@ -1,6 +1,7 @@
 import { db, schema } from '../database';
 import { eq, desc } from 'drizzle-orm';
 import { and } from 'drizzle-orm';
+import type { ResultSetHeader } from 'mysql2';
 
 // Fetch all todos that belong to a specific user
 export async function getAllTodos(userId: string) {
@@ -33,13 +34,17 @@ export async function createTodo(task: string, userId: string) {
 }
 
 // Update an existing todo by ID and userId
-export async function updateTodo(id: number, task: string, completed: boolean, userId: string) {
+export async function updateTodo(id: number,task: string | undefined,completed: boolean | undefined,userId: string) {
+  const updateFields: Partial<{ task: string; completed: boolean }> = {};
+  if (task !== undefined) updateFields.task = task;
+  if (completed !== undefined) updateFields.completed = completed;
+  if (Object.keys(updateFields).length === 0) return null;
+
   const result = await db
     .update(schema.todo)
-    .set({ task, completed })
+    .set(updateFields)
     .where(and(eq(schema.todo.id, id), eq(schema.todo.userId, userId)));
 
-  // If no rows updated, return null
   if ((result as any).affectedRows === 0) return null;
 
   const [updated] = await db
@@ -50,11 +55,11 @@ export async function updateTodo(id: number, task: string, completed: boolean, u
   return updated;
 }
 
-// Delete a todo by ID and userId; return true if deleted
 export async function deleteTodo(id: number, userId: string): Promise<boolean> {
-  const result = await db
+  const [result] = await db
     .delete(schema.todo)
     .where(and(eq(schema.todo.id, id), eq(schema.todo.userId, userId)));
 
-  return (result as any).affectedRows > 0;
+  return (result as ResultSetHeader).affectedRows > 0;
 }
+

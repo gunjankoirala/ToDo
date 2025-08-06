@@ -13,7 +13,7 @@ const mySqlTable = mysqlTableCreator((tableName) => tableName);
 const user = mySqlTable('user', {
   id: varchar({ length: 255 }).primaryKey(),
   email: varchar({ length: 255 }).unique(),
-  password: varchar({ length: 255 }),
+  password: varchar({ length: 255 }).notNull(),
 });
 
 //  Todo table
